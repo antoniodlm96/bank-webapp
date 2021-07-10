@@ -1,0 +1,48 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="emisor-evento">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Soy el emisor</h2>
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="sendEvent">No pulsar</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class EmisorEvento extends Polymer.Element {
+      static get is() { return 'emisor-evento'; }
+      static get properties() {
+        return {
+        };
+      }
+
+      sendEvent(e) {
+        console.log("Pulsado el botón");
+        console.log(e);
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "course": "TechU",
+                "year": 2019
+              }
+            }
+          )
+        )
+      }
+    }
+
+    window.customElements.define(EmisorEvento.is, EmisorEvento);
+  </script>
+</dom-module>

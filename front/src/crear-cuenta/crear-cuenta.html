@@ -1,0 +1,133 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="crear-cuenta">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <body onload="generateRandomIBAN()">
+      <h4>Crear cuenta</h4>
+      <div hidden$="{{cuentaCreadaCheck}}">
+        <text>Se va a agregar la cuenta con IBAN:</text>
+        <text>[[iban]]</text>
+        <text>a su usuario.</text>
+        <br>
+        <text>El balance inicial de la cuenta será de 0€</text>
+        <br>
+        <text>Si está de acuerdo, pulse aceptar</text>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="generarDatosCuenta">Aceptar</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+      </div>
+      <div hidden$="{{!cuentaCreadaCheck}}">
+        <text>Cuenta creada, si desea crear otra pulse aqui:</text>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="generateRandomIBAN">Aceptar</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+      </div>
+    </body>
+
+    <iron-ajax
+      id="createAccount"
+      url="http://localhost:3000/apitechu/v2/accounts/"
+      handle-as="json"
+      content-type="application/json"
+      on-response="cuentaCreada"
+      method="POST"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class CrearCuenta extends Polymer.Element {
+      static get is() { return 'crear-cuenta'; }
+      static get properties() {
+        return {
+          userId: {
+            type: Number,
+            observer: '_userObserver'
+          }, iban: {
+            type: String
+          }, balance: {
+            type: Number,
+            value: 0
+          }, cuentaCreadaCheck: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+
+      generateRandomIBAN(){
+        this.cuentaCreadaCheck = false;
+
+        var iban = "ES21";
+
+        for (var i = 0; i < 5; i++) {
+          var num = Math.floor(Math.random() * 9999);
+          var numStr = "";
+          if (num < 1000){
+            numStr = "0" + num;
+          }else if(num < 100){
+            numStr = "00" + num;
+          }else if(num < 10){
+            numStr = "000" + num;
+          }else if (num < 1){
+            numStr = "0000";
+          }else{
+            numStr = num;
+          }
+
+
+          iban = iban + " " + numStr;
+        }
+
+        console.log(iban);
+        console.log("Asignando nuevo IBAN")
+        this.iban = iban;
+      }
+
+      _userObserver(newValue, oldValue){
+        this.generateRandomIBAN();
+      }
+
+      generarDatosCuenta(){
+        var cuenta = {
+          "UserId": this.userId,
+          "IBAN": this.iban,
+          "Balance": this.balance
+        }
+
+        cuenta = JSON.stringify(cuenta);
+        console.log(cuenta);
+
+        this.$.createAccount.body = cuenta;
+        console.log(this.$.createAccount.body);
+        this.$.createAccount.generateRequest();
+      }
+
+      cuentaCreada(){
+        console.log("Cuenta creada");
+        this.cuentaCreadaCheck = true;
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "created": 1
+              }
+            }
+          )
+        )
+      }
+
+    }
+
+    window.customElements.define(CrearCuenta.is, CrearCuenta);
+  </script>
+</dom-module>

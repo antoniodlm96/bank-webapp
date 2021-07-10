@@ -1,0 +1,47 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../visor-usuario/visor-usuario.html">
+<link rel="import" href="../visor-cuentas/visor-cuentas.html">
+<link rel="import" href="../login-usuario/login-usuario.html">
+
+<dom-module id="test-iron-pages">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h1 class="jumbotron">TEST IRON PAGES</h4>
+    <select value="{{componentName::change}}">
+      <option>Seleccionar componente</option>
+      <option value="login-usuario">Login Usuario</option>
+      <option value="visor-usuario">Visor Usuario</option>
+      <option value="visor-cuentas">Visor Cuentas</option>
+    </select>
+    <iron-pages selected="[[componentName]]" attr-for-selected="component-name">
+      <div component-name="login-usuario"><login-usuario></login-usuario></div>
+      <div component-name="visor-usuario"><visor-usuario id="200"></visor-usuario></div>
+      <div component-name="visor-cuentas"><visor-cuentas id="10"></visor-cuentas></div>
+    </iron-pages>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class TestIronPages extends Polymer.Element {
+      static get is() { return 'test-iron-pages'; }
+      static get properties() {
+        return {
+          componentName: {
+            type: String
+          }
+        };
+      }
+    }
+
+    window.customElements.define(TestIronPages.is, TestIronPages);
+  </script>
+</dom-module>

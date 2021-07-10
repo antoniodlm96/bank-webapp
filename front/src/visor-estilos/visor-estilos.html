@@ -1,0 +1,53 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+
+<dom-module id="visor-estilos">
+  <template>
+    <style>
+      :host {
+        display: block;
+        /*all: initial;*/
+        border: solid blue;
+      }
+
+      .redbg {
+          background-color: red;
+      }
+
+      .greenbg {
+          background-color: green;
+      }
+
+      .bluebg {
+        background-color: blue;
+      }
+
+      .greybg {
+        background-color: grey;
+      }
+    </style>
+    <h3>Visor Estilos</h3>
+    <div class="row greybg">
+      <div class="col redbg col-sm-6">Col 1</div>
+      <div class="col greenbg col-sm-1">Col 2</div>
+      <div class="col bluebg col-sm-1">Col 3</div>
+    </div>
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="btn">Login</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="btn">Logout</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class VisorEstilos extends Polymer.Element {
+      static get is() { return 'visor-estilos'; }
+      static get properties() {
+        return {
+        };
+      }
+    }
+
+    window.customElements.define(VisorEstilos.is, VisorEstilos);
+  </script>
+</dom-module>

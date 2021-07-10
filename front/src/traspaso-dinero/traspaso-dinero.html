@@ -1,0 +1,276 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="traspaso-dinero">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <body onload="">
+      <h2>Traspaso a una de tus cuentas</h2>
+      <span hidden$="{{seguirOperando}}">
+        <text>Seleccione la cuenta a la que quiere pasar el dinero</text>
+        <div>
+          <select id="cuentasSel" on-change="obtenerBalanceCuentaSec">
+          </select>
+          <div hidden$="{{!cuentaSecEncontrada}}">
+            <text>El balance de la cuenta es: [[balanceCuentaSec]]€.</text>
+          </div>
+          <br>
+          <text>¿Qué cantidad desea pasar?</text>
+          <input id="cantidadPasar" on-keyup="comprobarCantidad"><text>€</text>
+          <div hidden$="{{!noFondos}}">
+            <text>No hay suficientes fondos</text>
+          </div>
+          <div hidden$="{{!cantidadIncorrecta}}">
+            <text>Cantidad incorrecta</div>
+          </div>
+          <div hidden$="{{!confirmarPasar}}">
+            <text>¿Pasar [[cantidad]]€ de la cuenta [[iban]] a la cuenta [[ibanCuentaSec]]?
+              <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="pasarDinero">Pasar</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+          </div>
+        </span>
+        <div hidden$="{{!seguirOperando}}">
+          <text>Se ha transferido [[cantidad]]€ de la cuenta [[iban]] a la cuenta [[ibanCuentaSec]].</text>
+          <br>
+          <text>Si quiere seguir operando pulse aquí</text>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="seguirOperandoFn">Seguir operando</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+        </div>
+      </div>
+    </body>
+
+    <iron-ajax
+      id="changeAccountPpal"
+      url="http://localhost:3000/apitechu/v2/modifyAccountBalance/{{iban}}"
+      handle-as="json"
+      content-type="application/json"
+      on-response="pasadoConExito"
+      method="PUT"></iron-ajax>
+
+    <iron-ajax
+      id="changeAccountSec"
+      url="http://localhost:3000/apitechu/v2/modifyAccountBalance/{{ibanCuentaSec}}"
+      handle-as="json"
+      content-type="application/json"
+      on-response=""
+      method="PUT"></iron-ajax>
+
+    <iron-ajax
+      id="generateTransaction"
+      url="http://localhost:3000/apitechu/v2/transactions/"
+      handle-as="json"
+      content-type="application/json"
+      on-response=""
+      method="POST"></iron-ajax>
+
+      <iron-ajax
+        id="getAccounts"
+        url="http://localhost:3000/apitechu/v2/accounts/{{userId}}"
+        handle-as="json"
+        on-response="showData"
+        method="GET"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class TraspasoDinero extends Polymer.Element {
+      static get is() { return 'traspaso-dinero'; }
+      static get properties() {
+        return {
+          iban: {
+            type: String,
+            observer: '_ibanObserver'
+          }, balance: {
+            type: Number
+          },ibanCuentaSec: {
+            type: String
+          }, balanceCuentaSec: {
+            type: Number
+          }, userId: {
+            type: Number,
+            observer: '_userObserver'
+          }, cantidad: {
+            type: Number
+          }, noFondos: {
+            type: Boolean,
+            value: false
+          }, cantidadIncorrecta: {
+            type: Boolean,
+            value: false
+          }, confirmarPasar: {
+            type: Boolean,
+            value: false
+          }, seguirOperando: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+
+      _userObserver(newValue, oldValue){
+        console.log("Cargando usuario con id");
+        console.log(newValue);
+
+        this.$.getAccounts.generateRequest();
+      }
+
+      _ibanObserver(newValue, oldValue){
+        this.cargarOpciones();
+        this.obtenerBalanceCuentaSec();
+      }
+
+      showData(data) {
+        console.log("Ha llegado respuesta");
+        console.log(data.detail.response);
+
+        this.cuentas = data.detail.response;
+        this.cargarOpciones();
+
+      }
+
+      cargarOpciones() {
+        var options = '';
+        this.$.cuentasSel.innerHTML = options;
+
+        for(var i = 0; i < this.cuentas.length; i++){
+          console.log("Cargando opciones cuenta sec");
+          console.log(this.cuentas[i]);
+          console.log(this.iban);
+          if(this.cuentas[i].IBAN != this.iban){
+            options += '<option value="'+this.cuentas[i].IBAN+'">'
+                                        +this.cuentas[i].IBAN+"</option>";
+          }
+        }
+
+        console.log(options);
+        console.log(this.$.cuentasSel);
+        this.$.cuentasSel.innerHTML = options;
+      }
+
+      obtenerBalanceCuentaSec(){
+        console.log("Has pulsado sobre la caja de texto");
+        console.log(this.$.cuentasSel.value);
+        var ibanCuenta = this.$.cuentasSel.value;
+
+        for(var i = 0; i < this.cuentas.length; i++){
+          if(this.cuentas[i].IBAN == ibanCuenta){
+            console.log("Cuenta sec encontrada");
+            this.balanceCuentaSec = this.cuentas[i].Balance;
+            this.cuentaSecEncontrada = true;
+            this.ibanCuentaSec = ibanCuenta;
+            break;
+          }else{
+            this.cuentaSecEncontrada = false;
+          }
+        }
+      }
+
+      comprobarCantidad(){
+        var cantidad = this.$.cantidadPasar.value;
+        console.log("La cantidad a pasar es " + cantidad);
+        cantidad = parseFloat(cantidad);
+        console.log(cantidad);
+        if(isNaN(cantidad)){
+          console.log("Error al parsear la cantidad");
+          this.cantidadIncorrecta = true;
+          this.confirmarPasar = false;
+        }else{
+          this.cantidadIncorrecta = false;
+          this.cantidad = cantidad;
+
+          console.log(this.cantidad);
+          console.log(this.balanceCuentaSec);
+
+          this.noFondos = this.cantidad > this.balance;
+          this.confirmarPasar = !this.noFondos;
+        }
+
+      }
+
+      aceptarPasar(){
+        if(this.cantidadIncorrecta == false &&
+          this.noFondos == false){
+            this.confirmarPasar = true;
+        }
+      }
+
+      pasarDinero(){
+        var bodyTransacionPpal = {
+          "Mensaje": "Traspaso",
+          "IBAN": this.iban,
+          "Cantidad": parseFloat(-this.cantidad)
+        }
+
+        var bodyCuentaPpal = {
+          "Balance": this.balance - this.cantidad
+        }
+
+        var bodyTransacionSec = {
+          "Mensaje": "Traspaso",
+          "IBAN": this.ibanCuentaSec,
+          "Cantidad": this.cantidad
+        }
+
+        var bodyCuentaSec = {
+          "Balance": this.balanceCuentaSec + this.cantidad
+        }
+
+        if(this.cantidad > this.balance){
+          this.noFondos = true;
+        }else{
+          this.noFondos = false;
+          this.$.generateTransaction.body = JSON.stringify(bodyTransacionPpal);
+          this.$.changeAccountPpal.body = JSON.stringify(bodyCuentaPpal);
+          this.$.generateTransaction.generateRequest();
+          this.$.changeAccountPpal.generateRequest();
+
+          this.$.generateTransaction.body = JSON.stringify(bodyTransacionSec);
+          this.$.changeAccountSec.body = JSON.stringify(bodyCuentaSec);
+          this.$.generateTransaction.generateRequest();
+          this.$.changeAccountSec.generateRequest();
+        }
+
+        console.log(bodyTransacionPpal);
+        console.log(bodyCuentaPpal);
+        console.log(bodyTransacionSec);
+        console.log(bodyCuentaSec);
+
+
+      }
+
+      pasadoConExito(){
+        console.log("Dinero pasado con exito");
+
+        this.balanceCuentaSec = this.balanceCuentaSec + this.cantidad;
+        this.$.getAccounts.generateRequest();
+        this.seguirOperando = true;
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "nuevoBalance": this.balance - this.cantidad
+              }
+            }
+          )
+        )
+      }
+
+      seguirOperandoFn(){
+        this.seguirOperando = false;
+      }
+
+    }
+
+    window.customElements.define(TraspasoDinero.is, TraspasoDinero);
+  </script>
+</dom-module>

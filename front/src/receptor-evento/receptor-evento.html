@@ -1,0 +1,62 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="receptor-evento">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Soy el receptor</h2>
+    <h3>Este curso es [[course]]</h3>
+    <h3>y estamos en el año [[year]]</h3>
+    <input type="text" value="{{course::input}}"></input>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class ReceptorEvento extends Polymer.Element {
+      static get is() { return 'receptor-evento'; }
+      static get properties() {
+        return {
+          course: {
+            type: String,
+            observer: '_courseChanged'
+          }, year: {
+            type: String
+          }
+        };
+      }
+
+      sendEvent(e) {
+        console.log("Pulsado el botón");
+        console.log(e);
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "course": "TechU",
+                "year": 2019
+              }
+            }
+          )
+        )
+      }
+
+      _courseChanged(newValue, oldValue) {
+        console.log("Course value has changed");
+        console.log("Ond value was: " + oldValue);
+        console.log("New value is: " + newValue);
+      }
+    }
+
+    window.customElements.define(ReceptorEvento.is, ReceptorEvento);
+  </script>
+</dom-module>

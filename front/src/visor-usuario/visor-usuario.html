@@ -1,0 +1,204 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../crear-cuenta/crear-cuenta.html">
+<link rel="import" href="../transferencia-traspaso/transferencia-traspaso.html">
+<link rel="import" href="../visor-movimientos/visor-movimientos.html">
+
+<dom-module id="visor-usuario">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <body onload="">
+      <div class="demo-card-wide mdl-card mdl-shadow--2dp">
+        <h4>Bienvenido/a de nuevo</h4>
+        <h4>Cliente: [[first_name]] [[last_name]]</h4>
+        <h4>Email: [[email]]</h4>
+      </div>
+      <br>
+      <br>
+      <div hidden$="{{!usuarioCargado}}">
+        <button id="btnCrearCuentas"
+              class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+              on-click="botonCrearCuentas">Crear cuenta</button>
+        <button id="btnVerCuentas"
+              class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+              on-click="botonCuentas">Ver cuentas</button>
+        <button id="btnTransferenciaTraspaso"
+              class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+              on-click="botonTransferenciaTraspaso">Transferencia/Traspaso</button>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+                on-click="refreshPage">Salir</button>
+        <div hidden$="{{!verCuentas}}">
+          <visor-cuentas id="cuentas" on-myevent="processEvent2">
+          </visor-cuentas>
+        </div>
+        <div hidden$="{{!crearCuentas}}">
+          <crear-cuenta id="crearCuenta" on-myevent="processEvent3">
+          </crear-cuenta>
+        </div>
+        <div hidden$="{{!realizarOperacion}}">
+          <transferencia-traspaso id="transferenciaTraspaso" on-myevent="processEvent">
+          </transferencia-traspaso>
+        </div>
+        <div hidden="{{!verMovimientos}}">
+          <visor-movimientos id="visorMovimientos" on-myevent="cerrarMovimientos">
+          </visor-movimientos>
+        </div>
+      </div>
+      <br>
+    </body>
+
+    <iron-ajax
+      id="getUser"
+      url="http://localhost:3000/apitechu/v2/users/{{userId}}"
+      handle-as="json"
+      on-response="showData"
+      method="GET"></iron-ajax>
+
+      <iron-ajax
+        id="logOut"
+        url="http://localhost:3000/apitechu/v2/logout/{{userId}}"
+        handle-as="json"
+        on-response="showData"
+        method="POST"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class VisorUsuario extends Polymer.Element {
+      static get is() { return 'visor-usuario'; }
+      static get properties() {
+        return {
+          userId: {
+            type: Number,
+            observer: '_userObserver'
+          }, first_name: {
+            type: String
+          }, last_name: {
+            type: String
+          }, email: {
+            type: String
+          }, verCuentas: {
+            type: Boolean,
+            value: false
+          }, crearCuentas: {
+            type: Boolean,
+            value: false
+          }, realizarOperacion: {
+            type: Boolean,
+            value: false
+          }, usuarioCargado: {
+            type: Boolean,
+            value: false
+          }, verMovimientos: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+
+      showData(data) {
+        console.log("Ha llegado respuesta");
+        console.log(data.detail.response);
+
+        this.$.cuentas.userId = this.userId;
+        this.first_name = data.detail.response.first_name;
+        this.last_name = data.detail.response.last_name;
+        this.email = data.detail.response.email;
+        this.usuarioCargado = true;
+      }
+
+      botonCuentas(e){
+        console.log("Pulsado boton ver cuentas");
+
+        this.crearCuentas = false;
+        this.realizarOperacion = false;
+        this.verMovimientos = false;
+
+        this.verCuentas = !this.verCuentas;
+      }
+
+      botonCrearCuentas(e){
+        console.log("Pulsado boton crear cuenta");
+
+        this.$.crearCuenta.userId = this.userId;
+
+        this.verCuentas = false;
+        this.realizarOperacion = false;
+        this.verMovimientos = false;
+
+        this.crearCuentas = !this.crearCuentas;
+      }
+
+      botonTransferenciaTraspaso(e){
+        console.log("Pulsado boton Transferencia/Traspaso");
+
+        this.$.transferenciaTraspaso.userId = this.userId;
+
+        this.verCuentas = false;
+        this.crearCuentas = false;
+        this.verMovimientos = false;
+
+        this.realizarOperacion = !this.realizarOperacion;
+      }
+
+      _userObserver(newValue, oldValue){
+        console.log("Cargando usuario");
+        console.log(this.userId);
+
+        this.$.getUser.generateRequest();
+      }
+
+      refreshPage(){
+        this.$.logOut.generateRequest();
+        window.location.reload();
+      }
+
+      processEvent(e){
+        console.log("Se ha capturado el evento de nueva cuenta");
+        this.$.cuentas.$.getAccounts.generateRequest();
+        this.$.visorMovimientos.$.getTransactions.generateRequest();
+      }
+
+      processEvent2(e){
+        if (parseInt(e.detail.deleted) == 1){
+          this.$.transferenciaTraspaso.$.getAccounts.generateRequest();
+        }else{
+          this.verCuentas = false;
+          this.crearCuentas = false;
+          this.realizarOperacion = false;
+          this.verMovimientos = true;
+
+          console.log("Iban del evento " + e.detail.iban);
+          this.$.visorMovimientos.iban = e.detail.iban;
+          console.log("Iban establecido");
+        }
+
+      }
+
+      cerrarMovimientos(e){
+        this.verCuentas = true;
+        this.crearCuentas = false;
+        this.realizarOperacion = false;
+        this.verMovimientos = false;
+      }
+
+      processEvent3(e){
+        this.$.cuentas.$.getAccounts.generateRequest();
+        this.$.visorMovimientos.$.getTransactions.generateRequest();
+        this.$.transferenciaTraspaso.$.getAccounts.generateRequest();
+      }
+    }
+
+    window.customElements.define(VisorUsuario.is, VisorUsuario);
+  </script>
+</dom-module>

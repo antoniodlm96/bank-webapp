@@ -1,0 +1,186 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="visor-cuentas">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <div hidden$="{{cuentaEliminadaCheck}}">
+      <div><strong>Listado de cuentas asociadas al ID <span>{{userId}}</span></strong></div>
+      <dom-repeat items="{{cuentas}}">
+        <template>
+          <div><em>Cuenta nº <span>[[displayIndex(index)]]:</span></em></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IBAN: <span>{{item.IBAN}}</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Balance: <span>{{item.Balance}}€</span></div>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="checkEliminarCuenta"
+                  data-iban$="[[item.IBAN]]"
+                  data-balance$="[[item.Balance]]"
+                  data-index$="[[index]]">Eliminar cuenta</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="verMovimientos"
+                  data-iban$="[[item.IBAN]]">Ver movimientos</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+          <div hidden$="{{elementoOculto(index, indexEliminarCuenta)}}">
+            <text>¿Esta seguro que quiere eliminar esta cuenta?</text>
+            <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="eliminarCuenta" data-iban$="[[item.IBAN]]">Eliminar</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+          </div>
+          <div hidden$="{{elementoOculto(index, indexBalanceNoCero)}}">
+            <text>La cuenta no se puede eliminar, su balance no es 0.</text>
+          </div>
+        </template>
+      </dom-repeat>
+    </div>
+    <div hidden$="{{!cuentaEliminadaCheck}}">
+      <text>La cuenta con IBAN: {{ibanEliminar}} fue eliminada.</text>
+      <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="aceptarCuentaEliminada">Aceptar</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+    </div>
+    <iron-ajax
+      id="getAccounts"
+      url="http://localhost:3000/apitechu/v2/accounts/{{userId}}"
+      handle-as="json"
+      on-response="showData"
+      method="GET"></iron-ajax>
+
+    <iron-ajax
+      id="delAccount"
+      url="http://localhost:3000/apitechu/v2/account/{{ibanEliminar}}"
+      handle-as="json"
+      on-response="cuentaEliminada"
+      method="DELETE"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class VisorCuentas extends Polymer.Element {
+      static get is() { return 'visor-cuentas'; }
+      static get properties() {
+        return {
+          cuentas: {
+            type: Array
+          }, userId: {
+            type: Number,
+            observer: '_accountObserver'
+          }, indexEliminarCuenta: {
+            type: Number,
+            value: -1
+          }, indexBalanceNoCero: {
+            type: Number,
+            value: -1
+          }, ibanEliminar: {
+            type: String
+          }, cuentaEliminadaCheck: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+
+      showData(data) {
+        console.log("Ha llegado respuesta");
+        console.log(data.detail.response);
+
+        this.cuentas = data.detail.response;
+      }
+
+      displayIndex(index) {
+        return index + 1;
+      }
+
+      _accountObserver(newValue, oldValue){
+        console.log("Cargando usuario");
+
+        this.$.getAccounts.generateRequest();
+      }
+
+      checkEliminarCuenta(event){
+        console.log("El iban es:");
+        console.log(event.target.dataset.iban);
+        console.log("El balance es:");
+        console.log(event.target.dataset.balance);
+        console.log("El index es:");
+        console.log(event.target.dataset.index);
+
+        var iban = event.target.dataset.iban;
+        var balance = parseFloat(event.target.dataset.balance);
+        var index = parseInt(event.target.dataset.index);
+
+        if(balance > 0){
+          console.log("He entrado en balance mayor que 0");
+          this.indexBalanceNoCero = index;
+        }else{
+          this.indexEliminarCuenta = index;
+        }
+
+        console.log("El indice que se deberia de mostrar es");
+        console.log(this.indexBalanceNoCero)
+
+      }
+
+      eliminarCuenta(event){
+        console.log("El iban es:");
+        console.log(event.target.dataset.iban);
+
+        var iban = event.target.dataset.iban;
+
+        this.ibanEliminar = iban.toString();
+
+        console.log(this.ibanEliminar);
+
+        this.$.delAccount.generateRequest();
+      }
+
+      cuentaEliminada(){
+        this.$.getAccounts.generateRequest();
+        this.indexBalanceNoCero = -1;
+        this.indexEliminarCuenta = -1;
+        this.cuentaEliminadaCheck = true;
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "deleted": 1
+              }
+            }
+          )
+        )
+      }
+
+      elementoOculto(index1, index2){
+        return index1 != index2;
+      }
+
+      aceptarCuentaEliminada(){
+        this.cuentaEliminadaCheck = false;
+        this.ibanEliminar = "";
+      }
+
+      verMovimientos(e){
+        console.log("Boton ver movimientos pulsado");
+        console.log("IBAN enviado: " + e.target.dataset.iban);
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "deleted": 0,
+                "iban": e.target.dataset.iban
+              }
+            }
+          )
+        )
+      }
+    }
+
+    window.customElements.define(VisorCuentas.is, VisorCuentas);
+  </script>
+</dom-module>

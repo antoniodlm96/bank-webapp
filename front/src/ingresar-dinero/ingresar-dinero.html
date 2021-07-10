@@ -1,0 +1,172 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="ingresar-dinero">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <body onload="">
+      <h2>Ingresar efectivo</h2>
+      <br>
+      <div hidden$="{{ingresoExitosoChk}}">
+        <text>Seleccione la cantidad a ingresar:</text>
+        <br>
+        <input id="inputIngresarDinero"
+                type="range"
+                list="cantidades"
+                on-change="ingresarDineroRango"
+                value="20"
+                min="20"
+                max="1000"
+                step="10">
+        <text> [[valorIngresarDinero]]€</text>
+        <datalist id="cantidades">
+          <option>20</option>
+          <option>50</option>
+          <option>100</option>
+          <option>200</option>
+          <option>500</option>
+          <option>1000</option>
+        </datalist>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="ingresarDineroAviso">Ingresar</button>
+      </div>
+      <div hidden$="{{!mensajeIngresarChk}}">
+        <text>Va a ingresar la cantidad de [[valorIngresarDinero]]€, ¿Está de acuerdo?</text>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="ingresarDinero">Aceptar</button>
+      </div>
+      <div hidden$="{{!ingresoExitosoChk}}">
+        <text>Ha ingresado [[valorIngresarDinero]]€ a su cuenta [[iban]].</text>
+        <br>
+        <text>Si quiere seguir operando, pulse aquí</text>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="seguirOperando">Seguir operando</button>
+      </div>
+    </body>
+
+    <iron-ajax
+      id="changeAccount"
+      url="http://localhost:3000/apitechu/v2/modifyAccountBalance/{{iban}}"
+      handle-as="json"
+      content-type="application/json"
+      on-response="ingresarDineroExito"
+      method="PUT"></iron-ajax>
+
+    <iron-ajax
+      id="generateTransaction"
+      url="http://localhost:3000/apitechu/v2/transactions/"
+      handle-as="json"
+      content-type="application/json"
+      on-response=""
+      method="POST"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class IngresarDinero extends Polymer.Element {
+      static get is() { return 'ingresar-dinero'; }
+      static get properties() {
+        return {
+          iban: {
+            type: String
+          }, balance: {
+            type: Number
+          }, valorIngresarDinero: {
+            type: Number,
+            value: 20
+          }, mensajeIngresarChk: {
+            type: Boolean,
+            value: false
+          }, ingresoExitosoChk: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+
+      ingresarDineroRango(){
+        console.log("El valor ha cambiado");
+        console.log(this.$.inputIngresarDinero.value);
+
+        this.valorIngresarDinero = parseInt(this.$.inputIngresarDinero.value);
+      }
+
+      ingresarDineroAviso(){
+        console.log("ingresarDineroAviso()");
+        console.log("Dinero a ingresar " + this.valorIngresarDinero);
+        console.log("Cuenta " + this.iban);
+        console.log("Balance " + this.balance)
+        this.mensajeIngresarChk = !this.mensajeIngresarChk;
+      }
+
+      ingresarDinero(){
+        console.log("ingresarDinero()");
+        console.log(this.iban);
+        console.log(this.balance);
+        console.log("Dinero a ingresar");
+        console.log(this.valorIngresarDinero);
+
+        var ibanCuenta = this.iban;
+        var dineroAIngresar = this.valorIngresarDinero;
+        var balanceActual = this.balance;
+
+        var bodyTransacion = {
+          "Mensaje": "Ingreso de efectivo",
+          "IBAN": ibanCuenta,
+          "Cantidad": dineroAIngresar
+        }
+
+        var bodyCuenta = {
+          "Balance": balanceActual + dineroAIngresar
+        }
+
+
+        console.log(bodyTransacion);
+        console.log(bodyCuenta);
+
+        this.$.changeAccount.body = JSON.stringify(bodyCuenta);
+        this.$.generateTransaction.body = JSON.stringify(bodyTransacion);
+        this.$.changeAccount.generateRequest();
+        this.$.generateTransaction.generateRequest();
+
+      }
+
+      ingresarDineroExito(){
+        this.ingresoExitosoChk = !this.ingresoExitosoChk;
+        this.mensajeIngresarChk = !this.mensajeIngresarChk;
+        console.log("El anterior balance es " + this.balance);
+        console.log("Hay que sumarle " + this.valorIngresarDinero);
+        this.balance = this.balance + this.valorIngresarDinero;
+
+        console.log("El nuevo balance es " + this.balance);
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "nuevoBalance": this.balance
+              }
+            }
+          )
+        )
+      }
+
+      seguirOperando(){
+        this.ingresoExitosoChk = !this.ingresoExitosoChk;
+        this.mensajeIngresarChk = false;
+      }
+
+    }
+
+    window.customElements.define(IngresarDinero.is, IngresarDinero);
+  </script>
+</dom-module>

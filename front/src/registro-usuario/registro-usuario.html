@@ -1,0 +1,156 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="registro-usuario">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <h4>Alta de Cliente</h4>
+    <div>
+      <label>Email:</label>
+      <input id="email" placeholder="Email" type="email" value="{{email::input}}"></input>
+      <br>
+      <label>Nombre:</label>
+      <input id="name" placeholder="Nombre" type="text" value="{{first_name::input}}"></input>
+      <br>
+      <label>Apellido:</label>
+      <input id="surname" placeholder="Apellido" type="text" value="{{last_name::input}}"></input>
+      <br>
+      <label>Contraseña:</label>
+      <input id="password" placeholder="Password" type="password" value="{{password::input}}"></input>
+      <br>
+      <div hidden$="{{!yaExisteMail}}"><text>Email ya existente, pruebe con otro</text></div>
+      <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="getId">Aceptar</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+    </div>
+    <div hidden$="{{!creado}}"><text>Usuario creado con exito.</text></div>
+
+    <iron-ajax
+      id="getMaxIdUser"
+      url="http://localhost:3000/apitechu/v2/getMaxIdUsers/"
+      handle-as="json"
+      content-type="application/json"
+      method="GET"
+      on-response="generateData"
+      on-error="showError">
+    </iron-ajax>
+
+    <iron-ajax
+      id="doRegistry"
+      url="http://localhost:3000/apitechu/v2/users/"
+      handle-as="json"
+      content-type="application/json"
+      method="POST"
+      on-response="userCreated"
+      on-error="showError">
+    </iron-ajax>
+
+    <iron-ajax
+      id="checkUserExists"
+      url="http://localhost:3000/apitechu/v2/checkUserMailExists/"
+      handle-as="json"
+      content-type="application/json"
+      method="POST"
+      on-response="createUser"
+      on-error="showError">
+    </iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class RegistroUsuario extends Polymer.Element {
+      static get is() { return 'registro-usuario'; }
+      static get properties() {
+        return {
+          id: {
+            type: Number
+          }, first_name: {
+            type: String
+          }, last_name: {
+            type: String
+          }, email: {
+            type: String
+          }, password: {
+            type: String
+          }, yaExisteMail: {
+            type: Boolean,
+            value: false
+          }, creado: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+
+      getId() {
+        this.$.getMaxIdUser.generateRequest();
+      }
+
+      showError(error){
+        console.log("Hubo un error");
+        console.log(error);
+      }
+
+      createUser(data){
+        console.log(data.detail.response);
+        if (parseInt(data.detail.response.founded)==0){
+          var registryData = {
+           "id": parseInt(this.id),
+           "first_name": this.first_name,
+           "last_name": this.last_name,
+           "email": this.email,
+           "password": this.password
+          }
+          console.log(registryData);
+
+          this.$.doRegistry.body = JSON.stringify(registryData);
+          this.$.doRegistry.generateRequest();
+          this.yaExisteMail = false;
+        }else{
+          console.log("Mail ya existente");
+          this.yaExisteMail = true;
+        }
+
+
+      }
+
+      generateData(data) {
+        console.log("Ha llegado respuesta");
+        console.log(data.detail.response);
+        this.id = parseInt(data.detail.response.id) + 1;
+
+        var email = {
+          "email": this.email
+        }
+
+        console.log(JSON.stringify(email));
+
+        this.$.checkUserExists.body = JSON.stringify(email);
+        console.log(this.$.checkUserExists.body);
+        this.$.checkUserExists.generateRequest();
+      }
+
+      userCreated(data){
+        console.log("Usuario creado con exito")
+        console.log(data);
+        Polymer.dom(this.root).querySelector("#email").value = "";
+        Polymer.dom(this.root).querySelector("#name").value = "";
+        Polymer.dom(this.root).querySelector("#surname").value = "";
+        Polymer.dom(this.root).querySelector("#password").value = "";
+        this.creado = true;
+      }
+
+    }
+
+    window.customElements.define(RegistroUsuario.is, RegistroUsuario);
+  </script>
+</dom-module>

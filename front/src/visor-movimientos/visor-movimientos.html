@@ -1,0 +1,83 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="visor-movimientos">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+      <div><strong>Listado de movimientos asociados al la cuenta IBAN: <span>{{iban}}</span></strong></div>
+      <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="volverAtras">Atrás</button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+      <dom-repeat items="{{movimientos}}">
+        <template>
+          <div><em>Movimiento nº <span>[[displayIndex(index)]]:</span></em></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mensaje: <span>{{item.Mensaje}}</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cantidad: <span>{{item.Cantidad}}€</span></div>
+          </div>
+        </template>
+      </dom-repeat>
+    <iron-ajax
+      id="getTransactions"
+      url="http://localhost:3000/apitechu/v2/transactions/{{iban}}"
+      handle-as="json"
+      on-response="showData"
+      method="GET"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class VisorMovimientos extends Polymer.Element {
+      static get is() { return 'visor-movimientos'; }
+      static get properties() {
+        return {
+          movimientos: {
+            type: Array
+          }, iban: {
+            type: String,
+            observer: '_accountObserver'
+          }
+        };
+      }
+
+      showData(data) {
+        console.log("Ha llegado respuesta");
+        console.log(data.detail.response);
+
+        this.movimientos = data.detail.response;
+      }
+
+      displayIndex(index) {
+        return index + 1;
+      }
+
+      _accountObserver(newValue, oldValue){
+        console.log("Cargando cuenta visor movimientos");
+
+        this.$.getTransactions.generateRequest();
+      }
+
+      volverAtras(e){
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+
+              }
+            }
+          )
+        )
+      }
+    }
+
+    window.customElements.define(VisorMovimientos.is, VisorMovimientos);
+  </script>
+</dom-module>

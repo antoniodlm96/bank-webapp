@@ -1,0 +1,213 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="sacar-dinero">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <body onload="">
+      <h2>Retirar efectivo</h2>
+      <br>
+      <div hidden$="{{retiradaExitosaChk}}">
+        <text>Seleccione la cantidad a sacar:</text>
+        <br>
+        <input id="inputSacarDinero"
+                type="range"
+                list="cantidades"
+                on-change="sacarDineroRango"
+                value="20"
+                min="20"
+                max="1000"
+                step="10">
+        <text> [[valorSacarDinero]]€</text>
+        <datalist id="cantidades">
+          <option>20</option>
+          <option>50</option>
+          <option>100</option>
+          <option>200</option>
+          <option>500</option>
+          <option>1000</option>
+        </datalist>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="sacarDineroAviso"
+                hidden$="{{noSuficienteDinero}}">Retirar</button>
+        <text hidden$="{{!noSuficienteDinero}}">No hay suficientes fondos.</text>
+      </div>
+      <div hidden$="{{!mensajeSacarChk}}">
+        <text>Va a retirar la cantidad de [[valorSacarDinero]]€, ¿Está de acuerdo?</text>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="sacarDinero">Aceptar</button>
+      </div>
+      <div hidden$="{{!retiradaExitosaChk}}">
+        <text>Ha retirado [[valorSacarDinero]]€ de su cuenta [[iban]].</text>
+        <br>
+        <text>Si quiere seguir operando, pulse aquí</text>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" on-click="seguirOperando">Seguir operando</button>
+      </div>
+      <div>
+        <h6>Ratios euro</h6>
+        <span>USD<stock-value current="0.9" previous="0.9"></stock-value></span>
+        <br>
+        <span>Libras<stock-value current="1.2" revious="1.2"></stock-value></span>
+      </div>
+    </body>
+
+    <iron-ajax
+      id="cargaDivisas"
+      url="http://localhost:3000/apitechu/v2/getDivisas"
+      handle-as="json"
+      content-type="application/json"
+      on-response="recibeDivisas"
+      method="GET"></iron-ajax>
+
+    <iron-ajax
+      id="changeAccount"
+      url="http://localhost:3000/apitechu/v2/modifyAccountBalance/{{iban}}"
+      handle-as="json"
+      content-type="application/json"
+      on-response="sacarDineroExito"
+      method="PUT"></iron-ajax>
+
+    <iron-ajax
+      id="generateTransaction"
+      url="http://localhost:3000/apitechu/v2/transactions/"
+      handle-as="json"
+      content-type="application/json"
+      on-response=""
+      method="POST"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class SacarDinero extends Polymer.Element {
+      static get is() { return 'sacar-dinero'; }
+      static get properties() {
+        return {
+          iban: {
+            type: String
+          }, balance: {
+            type: Number
+          }, valorSacarDinero: {
+            type: Number,
+            value: 20
+          }, mensajeSacarChk: {
+            type: Boolean,
+            value: false
+          }, retiradaExitosaChk: {
+            type: Boolean,
+            value: false
+          }, noSuficienteDinero: {
+            type: Boolean,
+            value: false
+          }, fechaCadena: {
+            type: String
+          }, ratioUSD: {
+            type: Number
+          }, ratioGBP: {
+            type: Number
+          }
+        };
+      }
+
+      sacarDineroRango(){
+        console.log("El valor ha cambiado");
+        console.log(this.$.inputSacarDinero.value);
+
+        this.valorSacarDinero = parseInt(this.$.inputSacarDinero.value);
+        this.noSuficienteDinero = this.valorSacarDinero>this.balance;
+      }
+
+      sacarDineroAviso(){
+        console.log("sacarDineroAviso()");
+        console.log("Dinero a sacar " + this.valorSacarDinero);
+        console.log("Cuenta " + this.iban);
+        console.log("Balance " + this.balance)
+        this.mensajeSacarChk = !this.mensajeSacarChk;
+      }
+
+      sacarDinero(){
+        console.log("sacarDinero()");
+        console.log(this.iban);
+        console.log(this.balance);
+        console.log("Dinero a sacar");
+        console.log(this.valorSacarDinero);
+
+        var ibanCuenta = this.iban;
+        var dineroASacar = this.valorSacarDinero;
+        var balanceActual = this.balance;
+
+        if(dineroASacar>balanceActual){
+          this.noSuficienteDinero = true;
+          this.mensajeSacarChk = false;
+        }else{
+          var bodyTransacion = {
+            "Mensaje": "Retirada efectivo",
+            "IBAN": ibanCuenta,
+            "Cantidad": dineroASacar
+          }
+
+          var bodyCuenta = {
+            "Balance": balanceActual - dineroASacar
+          }
+
+          console.log(bodyTransacion);
+          console.log(bodyCuenta);
+
+          this.$.changeAccount.body = JSON.stringify(bodyCuenta);
+          this.$.generateTransaction.body = JSON.stringify(bodyTransacion);
+          this.$.changeAccount.generateRequest();
+          this.$.generateTransaction.generateRequest();
+
+        }
+      }
+
+      sacarDineroExito(){
+        this.retiradaExitosaChk = !this.retiradaExitosaChk;
+        this.mensajeSacarChk = !this.mensajeSacarChk;
+        console.log("El anterior balance es " + this.balance);
+        console.log("Hay que restarle " + this.valorSacarDinero);
+        this.balance = this.balance - this.valorSacarDinero;
+
+        console.log("El nuevo balance es " + this.balance);
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "nuevoBalance": this.balance
+              }
+            }
+          )
+        )
+      }
+
+      seguirOperando(){
+        this.retiradaExitosaChk = !this.retiradaExitosaChk;
+        this.mensajeSacarChk = false;
+      }
+
+      recibeDivisas(data){
+        console.log("Cargando divisas");
+        console.log(data);
+        this.ratioUSD = data.rates.USD;
+        this.ratioGBP = data.rates.GBP;
+        this.fechaCadena = data.date;
+        console.log(this.ratioUSD);
+        console.log(this.ratioGBP);
+        console.log(this.fechaCadena);
+      }
+
+    }
+
+    window.customElements.define(SacarDinero.is, SacarDinero);
+  </script>
+</dom-module>

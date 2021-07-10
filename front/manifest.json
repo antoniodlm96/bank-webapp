@@ -1,0 +1,7 @@
+{
+  "name": "frontproyecto",
+  "short_name": "frontproyecto",
+  "description": "aplicación molona",
+  "start_url": "/",
+  "display": "standalone"
+}

@@ -1,0 +1,48 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../emisor-evento/emisor-evento.html">
+<link rel="import" href="../receptor-evento/receptor-evento.html">
+
+<dom-module id="gestor-evento">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Soy el gestor</h2>
+    <iron-pages selected="[[componentName]]" attr-for-selected="component-name">
+      <div component-name="emisor"><emisor-evento on-myevent="processEvent"></emisor-evento></div>
+      <div component-name="receptor"><receptor-evento id="receiver"></receptor-evento></div>
+    </iron-pages>
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class GestorEvento extends Polymer.Element {
+      static get is() { return 'gestor-evento'; }
+      static get properties() {
+        return {
+          componentName: {
+            type: String,
+            value: "emisor"
+          }
+        };
+      }
+
+      processEvent(e){
+        console.log("Capturado evento del emisor");
+        console.log(e.detail);
+
+        this.$.receiver.course = e.detail.course;
+        this.$.receiver.year = e.detail.year;
+        this.componentName = "receptor";
+      }
+    }
+
+    window.customElements.define(GestorEvento.is, GestorEvento);
+  </script>
+</dom-module>

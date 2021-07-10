@@ -1,0 +1,56 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="visor-usuario">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Soy [[first_name]] [[last_name]]</h2>
+    <h3>y mi email es [[email]]</h3>
+
+    <iron-ajax
+      auto
+      id="getUser"
+      url="http://localhost:3000/apitechu/v2/users/{{id}}"
+      handle-as="json"
+      on-response="showData"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class VisorUsuario extends Polymer.Element {
+      static get is() { return 'visor-usuario'; }
+      static get properties() {
+        return {
+          id: {
+            type: Number
+          }, first_name: {
+            type: String
+          }, last_name: {
+            type: String
+          }, email: {
+            type: String
+          }
+        };
+      }
+
+      showData(data) {
+        console.log("Ha llegado respuesta");
+        console.log(data.detail.response);
+
+        this.first_name = data.detail.response.first_name;
+        this.last_name = data.detail.response.last_name;
+        this.email = data.detail.response.email;
+      }
+    }
+
+    window.customElements.define(VisorUsuario.is, VisorUsuario);
+  </script>
+</dom-module>

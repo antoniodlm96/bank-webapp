@@ -1,0 +1,247 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../sacar-dinero/sacar-dinero.html">
+<link rel="import" href="../ingresar-dinero/ingresar-dinero.html">
+<link rel="import" href="../transferencia-dinero/transferencia-dinero.html">
+<link rel="import" href="../traspaso-dinero/traspaso-dinero.html">
+
+<dom-module id="transferencia-traspaso">
+  <template>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-blue.min.css">
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <body onload="">
+      <h4>Realizar Transferencia/Traspaso/Operación</h4>
+      <text>Seleccione la cuenta con la que va a operar:</text>
+      <div hidden="{{!cuentaPpalEncontrada}}">
+        <div>
+          <select id="cuentasSel" on-change="obtenerBalanceCuentaPpal">
+          </select>
+          <text>El balance de la cuenta es: [[balanceCuentaPpal]]€.</text>
+        </div>
+        <br>
+        <text>Seleccione la opción a realizar</text>
+        <div>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"  on-click="botonTransferncia">Transferencia</button>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"  on-click="botonTraspaso">Traspaso</button>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"  on-click="botonIngresar">Ingresar efectvo</button>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"  on-click="botonSacar">Retirar efectivo</button>
+        </div>
+      </div>
+      <div hidden$="{{!transfeChk}}">
+        <transferencia-dinero id="transferenciaDinero" on-myevent="recargarCuentas">
+        </transferencia-dinero>
+      </div>
+      <div hidden$="{{!traspasoChk}}">
+        <traspaso-dinero id="traspasoDinero" on-myevent="recargarCuentas">
+        </traspaso-dinero>
+      </div>
+      <div hidden$="{{!ingresarChk}}">
+        <ingresar-dinero id="ingresarDinero" on-myevent="recargarCuentas">
+        </ingresar-dinero>
+      </div>
+      <div hidden$="{{!sacarChk}}">
+        <sacar-dinero id="sacarDinero" on-myevent="recargarCuentas">
+        </sacar-dinero>
+      </div>
+
+    </body>
+
+    <iron-ajax
+      id="getAccounts"
+      url="http://localhost:3000/apitechu/v2/accounts/{{userId}}"
+      handle-as="json"
+      on-response="showData"
+      method="GET"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class TransferenciaTraspaso extends Polymer.Element {
+      static get is() { return 'transferencia-traspaso'; }
+      static get properties() {
+        return {
+          userId: {
+            type: Number,
+            observer: '_userObserver'
+          }, cuentas: {
+            type: Array
+          }, balanceCuentaPpal: {
+            type: Number,
+            value: 0
+          }, cuentaPpalEncontrada: {
+            type: Boolean,
+            value: false
+          }, ibanCuentaPpal: {
+            type: String,
+            value: ""
+          }, transfeChk: {
+            type: Boolean,
+            value: false
+          }, traspasoChk: {
+            type: Boolean,
+            value: false
+          }, ingresarChk: {
+            type: Boolean,
+            value: false
+          }, sacarChk: {
+            type: Boolean,
+            value: false
+          }, onLoad: {
+            type: Boolean,
+            value: true
+          }
+        };
+      }
+
+      _userObserver(newValue, oldValue){
+        console.log("Cargando usuario con id");
+        console.log(newValue);
+
+        this.$.traspasoDinero.userId = this.userId;
+        this.$.transferenciaDinero.userId = this.userId;
+        this.$.getAccounts.generateRequest();
+      }
+
+      showData(data) {
+        console.log("Ha llegado respuesta");
+        console.log(data.detail.response);
+
+        this.cuentas = data.detail.response;
+
+        if(this.onLoad == true){
+          this.ibanCuentaPpal = this.cuentas[0].IBAN;
+          this.balanceCuentaPpal = this.cuentas[0].Balance;
+
+          this.$.sacarDinero.iban =  this.cuentas[0].IBAN;
+          this.$.sacarDinero.balance = this.cuentas[0].Balance;
+
+          this.$.ingresarDinero.iban =  this.cuentas[0].IBAN;
+          this.$.ingresarDinero.balance = this.cuentas[0].Balance;
+
+          this.$.transferenciaDinero.iban =  this.cuentas[0].IBAN;
+          this.$.transferenciaDinero.balance = this.cuentas[0].Balance;
+
+          this.$.traspasoDinero.iban =  this.cuentas[0].IBAN;
+          this.$.traspasoDinero.balance = this.cuentas[0].Balance;
+          this.onLoad=false;
+
+          this.cuentaPpalEncontrada = true;
+        }
+          this.cargarOpciones();
+          this.$.traspasoDinero.$.getAccounts.generateRequest();
+          this.$.traspasoDinero.balance = this.cuentas[0].Balance;
+      }
+
+      cargarOpciones() {
+        console.log("Cargando nuevas opciones")
+        var options = '';
+        this.$.cuentasSel.innerHTML = options;
+
+        for(var i = 0; i < this.cuentas.length; i++){
+          console.log(this.cuentas[i]);
+          options += '<option value="'+this.cuentas[i].IBAN+'">'
+                                      +this.cuentas[i].IBAN+"</option>";
+        }
+
+        console.log(options);
+        console.log(this.$.cuentasSel);
+        this.$.cuentasSel.innerHTML = options;
+      }
+
+      obtenerBalanceCuentaPpal(){
+        console.log("Has pulsado sobre la caja de texto");
+        console.log(this.$.cuentasSel.value);
+        var ibanCuenta = this.$.cuentasSel.value;
+
+        for(var i = 0; i < this.cuentas.length; i++){
+          if(this.cuentas[i].IBAN == ibanCuenta){
+            this.balanceCuentaPpal = this.cuentas[i].Balance;
+
+            this.ibanCuentaPpal = ibanCuenta;
+
+            this.$.sacarDinero.iban =  ibanCuenta;
+            this.$.sacarDinero.balance = this.cuentas[i].Balance;
+
+            this.$.ingresarDinero.iban =  ibanCuenta;
+            this.$.ingresarDinero.balance = this.cuentas[i].Balance;
+
+            this.$.transferenciaDinero.iban =  ibanCuenta;
+            this.$.transferenciaDinero.balance = this.cuentas[i].Balance;
+
+            this.$.traspasoDinero.iban =  ibanCuenta;
+            this.$.traspasoDinero.balance = this.cuentas[i].Balance;
+            break;
+          }
+        }
+      }
+
+      botonTransferncia(){
+        console.log("Pulsado boton transferencia");
+
+        this.transfeChk = !this.transfeChk;
+        this.traspasoChk = false;
+        this.sacarChk = false;
+        this.ingresarChk = false;
+      }
+
+      botonTraspaso(){
+        console.log("Pulsado boton Traspaso");
+
+        this.traspasoChk = !this.traspasoChk;
+        this.transfeChk = false;
+        this.sacarChk = false;
+        this.ingresarChk = false;
+      }
+
+      botonIngresar(){
+        console.log("Pulsado boton Ingresar");
+
+        this.ingresarChk = !this.ingresarChk;
+        this.transfeChk = false;
+        this.traspasoChk = false;
+        this.sacarChk = false;
+      }
+
+      botonSacar(){
+        console.log("Pulsado boton Sacar");
+
+        this.sacarChk = !this.sacarChk;
+        this.transfeChk = false;
+        this.traspasoChk = false;
+        this.ingresarChk = false;
+        this.$.sacarDinero.$.cargaDivisas.generateRequest();
+      }
+
+      recargarCuentas(e){
+        this.balanceCuentaPpal = e.detail.nuevoBalance;
+
+        this.$.sacarDinero.balance = e.detail.nuevoBalance;
+        this.$.ingresarDinero.balance = e.detail.nuevoBalance;
+        this.$.traspasoDinero.balance = e.detail.nuevoBalance;
+        this.$.transferenciaDinero.balance = e.detail.nuevoBalance;
+
+        this.dispatchEvent(
+          new CustomEvent(
+            "myevent",
+            {
+              "detail" : {
+                "load": 0
+              }
+            }
+          )
+        )
+      }
+    }
+
+    window.customElements.define(TransferenciaTraspaso.is, TransferenciaTraspaso);
+  </script>
+</dom-module>
